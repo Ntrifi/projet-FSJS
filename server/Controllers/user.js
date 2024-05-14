@@ -6,14 +6,15 @@ const saltRounds = 10;
 exports.Register = async(req,res) => {
     try 
     {
-      
         const userTest = await UserSchema.findOne({email : req.body.email});
         if(userTest !== null)
         {
             res.status(401).send({msg : "User already exist"});
         }
         else {
-            const newUser = new UserSchema({ ...req.body });
+            var newUser = new UserSchema({ ...req.body });
+            console.log(newUser)
+            newUser.role = 0;
             newUser.password = await bcrypt.hash(req.body.password, saltRounds);
             newUser.save().then((user) => {
                 const token = jwt.sign({id: user._id},process.env.SECRET_KEY, {expiresIn : '3h'});
@@ -67,21 +68,22 @@ exports.UpdateUser = async (req,res) => {
     }
 }
 exports.Login =  async (req,res) => {
+  
   const {email , password} = req.body;
-    UserSchema.findOne({email}).then((findUser) => {
+    UserSchema.findOne({email: email}).then((findUser) => {
       bcrypt.compare(password, findUser.password).then((comparepassword) => 
       {
         if(!comparepassword) 
         {
-          res.status(401).send({status: "401", msg : 'Bad credentials'});
+          res.status(401).send({status: "401", msg : 'Bad password'});
         }else 
         {
           const token = jwt.sign({id: findUser._id},process.env.SECRET_KEY, {expiresIn : '3h'});
           res.status(200).send({status:"200",user: findUser, token});
         }
       })
-      }).catch(() => {
-        res.status(401).send({msg : 'Bad credentials', status:"401"});
+      }).catch((ex) => {
+        res.status(401).send({msg : ex.toString(), status:"401"});
         
       })
 }
